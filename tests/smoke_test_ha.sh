@@ -21,7 +21,7 @@
 #      mean "alive and serving."
 set -euo pipefail
 
-CLUSTER_NAME="cluster"
+CLUSTER_NAME="cluster_ha"
 env_file="$TEST_TMPDIR/${CLUSTER_NAME}.env"
 [[ -f "$env_file" ]] || { echo "missing kind env file" >&2; exit 1; }
 # shellcheck disable=SC1090

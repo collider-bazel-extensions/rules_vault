@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CLUSTER_NAME="cluster"
+CLUSTER_NAME="cluster_ha"
 
 if [[ -z "${RUNFILES_DIR:-}" ]]; then
   if [[ -d "${0}.runfiles" ]]; then RUNFILES_DIR="${0}.runfiles"
