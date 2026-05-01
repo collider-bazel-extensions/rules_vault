@@ -12,7 +12,13 @@ load("@rules_itest//:itest.bzl", "itest_service", "service_test")
 load("@rules_kind//:defs.bzl", "kind_cluster", "kind_health_check")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
-load("@rules_vault//:defs.bzl", "vault_health_check", "vault_install")
+load(
+    "@rules_vault//:defs.bzl",
+    "vault_health_check",
+    "vault_health_check_ha",
+    "vault_install",
+    "vault_install_ha",
+)
 load(":analysis_tests.bzl", "vault_install_test_suite")
 
 # ---- analysis ---------------------------------------------------------------
@@ -72,6 +78,70 @@ service_test(
     name = "smoke_test",
     services = [":vault_svc"],
     test = ":smoke_test_bin",
+    tags = [
+        "manual",
+        "no-sandbox",
+        "requires-network",
+    ],
+)
+
+# ---- HA Raft smoke composition ---------------------------------------------
+# Separate kind cluster (couldn't share with the dev-mode smoke if
+# both run in parallel — different StatefulSet shapes share the
+# `vault` namespace name). Apply HA manifest, init+unseal+raft-join
+# via install_ha.sh, run KV v2 round-trip with leader + standby reads.
+
+kind_cluster(name = "cluster_ha", k8s_version = "1.32")
+
+kind_health_check(name = "cluster_ha_health", cluster = ":cluster_ha")
+
+itest_service(
+    name = "kind_ha_svc",
+    exe = ":cluster_ha",
+    health_check = ":cluster_ha_health",
+    tags = ["manual"],
+)
+
+vault_install_ha(
+    name = "vault_install_ha_bin",
+    tags = ["manual"],
+)
+
+vault_health_check_ha(
+    name = "vault_health_ha_bin",
+    tags = ["manual"],
+)
+
+sh_binary(
+    name = "vault_install_ha_wrapper",
+    srcs = ["install_wrapper_ha.sh"],
+    data = [":vault_install_ha_bin"],
+)
+
+sh_binary(
+    name = "vault_health_ha_wrapper",
+    srcs = ["health_wrapper_ha.sh"],
+    data = [":vault_health_ha_bin"],
+)
+
+itest_service(
+    name = "vault_ha_svc",
+    exe = ":vault_install_ha_wrapper",
+    deps = [":kind_ha_svc"],
+    health_check = ":vault_health_ha_wrapper",
+    tags = ["manual"],
+)
+
+sh_test(
+    name = "smoke_test_ha_bin",
+    srcs = ["smoke_test_ha.sh"],
+    tags = ["manual"],
+)
+
+service_test(
+    name = "smoke_test_ha",
+    services = [":vault_ha_svc"],
+    test = ":smoke_test_ha_bin",
     tags = [
         "manual",
         "no-sandbox",

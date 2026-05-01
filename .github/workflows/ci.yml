@@ -38,9 +38,7 @@ jobs:
 
   smoke:
     # End-to-end: kind + Vault (dev mode) + KV v2 round-trip.
-    # Smoke kubectl-runs a curl pod, POSTs/GETs a secret via the
-    # HTTP API, asserts the value round-trips.
-    name: smoke (ubuntu-latest, docker)
+    name: smoke (ubuntu-latest, dev mode)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -54,9 +52,6 @@ jobs:
         run: docker version
 
       - name: bazel test //tests:smoke_test
-        # kind boot (~30s) + vault image pull (~120 MB) + the install
-        # wait (300s default — single sts/vault rollout) + the
-        # smoke's HTTP round-trip (~2s). 600s clears comfortably.
         run: bazel test //tests:smoke_test --test_output=streamed --test_timeout=600
 
       - name: Upload test logs on failure
@@ -64,5 +59,35 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bazel-testlogs-smoke
+          path: bazel-testlogs/
+          if-no-files-found: ignore
+
+  smoke_ha:
+    # End-to-end HA Raft: kind + Vault (3-replica HA Raft) +
+    # init+unseal+raft-join orchestration + KV v2 round-trip via
+    # leader (vault Service) and standby (vault-1.vault-internal).
+    # 3 image pulls + 3 PVC mounts + the init/unseal sequence
+    # take longer than dev mode — bumped timeout accordingly.
+    name: smoke (ubuntu-latest, HA Raft)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bazel-contrib/setup-bazel@0.15.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-smoke-ha
+          repository-cache: true
+
+      - name: Verify Docker is available
+        run: docker version
+
+      - name: bazel test //tests:smoke_test_ha
+        run: bazel test //tests:smoke_test_ha --test_output=streamed --test_timeout=900
+
+      - name: Upload test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bazel-testlogs-smoke-ha
           path: bazel-testlogs/
           if-no-files-found: ignore

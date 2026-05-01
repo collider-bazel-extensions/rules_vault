@@ -2,7 +2,7 @@
 
 module(
     name = "rules_vault",
-    version = "0.1.0",
+    version = "0.2.0",
 )
 
 bazel_dep(name = "bazel_skylib", version = "1.8.2")
@@ -15,9 +15,15 @@ git_override(
     commit = "81b60ab80df46b64c612f2576ffef0a7af98ccb6",  # v0.2.0
 )
 
+# `vault_install_ha` (HA Raft mode, v0.2) emits an `sh_binary` for the
+# custom apply+init+unseal+raft-join launcher, so rules_shell is part of
+# the public surface (consumers transitively need it). `vault_install`
+# (dev mode) only emits a kubectl_apply, no rules_shell needed for that
+# code path.
+bazel_dep(name = "rules_shell", version = "0.8.0")
+
 # ---- dev-only: smoke composition --------------------------------------------
 bazel_dep(name = "rules_itest", version = "0.0.52", dev_dependency = True)
-bazel_dep(name = "rules_shell", version = "0.8.0", dev_dependency = True)
 
 bazel_dep(name = "rules_kind", version = "0.1.2", dev_dependency = True)
 git_override(

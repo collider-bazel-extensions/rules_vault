@@ -28,3 +28,30 @@ sh_binary(
     ],
     visibility = ["//visibility:public"],
 )
+
+# ---- 0.32.0 HA Raft variant -------------------------------------------------
+# Same chart, different values. Renders a 3-replica StatefulSet
+# with PVCs and the HCL config for raft storage + service
+# registration. NOT auto-unsealed — the install launcher (see
+# private/install_ha.sh) handles init + unseal + raft join after
+# the manifest is applied.
+
+helm_template(
+    name = "render_vault_ha_0_32_0",
+    chart = ["@vault_chart_0_32_0//:files"],
+    values = ["//config:vault-ha-values.yaml"],
+    namespace = "vault",
+    release_name = "vault",
+    helm_template_args = ["--skip-tests"],
+)
+
+sh_binary(
+    name = "render_writeback_ha_0_32_0",
+    srcs = ["writeback.sh"],
+    data = [":render_vault_ha_0_32_0"],
+    args = [
+        "$(rootpath :render_vault_ha_0_32_0)",
+        "private/manifests/vault-ha.yaml",
+    ],
+    visibility = ["//visibility:public"],
+)

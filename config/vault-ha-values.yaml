@@ -1,0 +1,74 @@
+# Render-time values for rules_vault's HA Raft variant.
+#
+# Smoke-fixture footprint: 3-replica Vault StatefulSet with
+# integrated storage (Raft). Each pod has its own PVC for raft
+# data. Pods come up SEALED — Vault's readiness probe runs
+# `vault status` and exits 2 on sealed, so pods stay NotReady
+# until `vault operator init` + `vault operator unseal` runs.
+# rules_vault's `vault_install_ha` macro emits a custom launcher
+# that handles the init + unseal + raft-join sequence
+# automatically (see private/install_ha.sh).
+#
+# Production deployments override the auto-init flow with one of:
+#   - cloud KMS auto-unseal (server.ha.raft.config + seal stanza)
+#   - Transit auto-unseal (compose with another rules_vault dev-
+#     mode instance acting as the Transit cluster)
+#   - manual init + unseal (operator-driven, no rules_vault
+#     orchestration)
+# v0.2's launcher uses shamir 1-of-1 (single key, threshold 1) —
+# adequate for a smoke fixture, NOT prod-safe (1-key Shamir is
+# equivalent to no key sharing at all).
+
+global:
+  enabled: true
+
+injector:
+  enabled: false
+
+csi:
+  enabled: false
+
+server:
+  ha:
+    enabled: true
+    replicas: 3
+    raft:
+      enabled: true
+      # Each pod gets its raft node ID from VAULT_RAFT_NODE_ID env
+      # (set by the chart to .metadata.name — vault-0, vault-1,
+      # vault-2). setNodeId: true tells the chart to wire that env.
+      setNodeId: true
+      # Raft + Pod listener config in HCL. The chart embeds this
+      # into the vault-config ConfigMap.
+      config: |
+        ui = false
+        listener "tcp" {
+          tls_disable = 1
+          address = "[::]:8200"
+          cluster_address = "[::]:8201"
+        }
+        storage "raft" {
+          path = "/vault/data"
+        }
+        service_registration "kubernetes" {}
+
+  dataStorage:
+    enabled: true
+    size: 100Mi
+    storageClass: ""
+
+  auditStorage:
+    enabled: false
+
+  resources:
+    requests:
+      cpu: "0"
+      memory: "0"
+    limits:
+      cpu: "0"
+      memory: "0"
+
+  # Same lesson as dev mode — chart's OnDelete default breaks
+  # `kubectl rollout status sts/vault` which the HA install
+  # launcher's final wait depends on.
+  updateStrategyType: "RollingUpdate"

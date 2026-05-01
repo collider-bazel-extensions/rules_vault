@@ -1,6 +1,5 @@
 package(default_visibility = ["//visibility:public"])
 
 exports_files([
-    "vault.yaml",
-    "vault-ha.yaml",
+    "install_ha.sh",
 ])

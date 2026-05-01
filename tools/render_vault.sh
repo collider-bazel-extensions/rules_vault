@@ -5,8 +5,13 @@
 #   3. bash tools/render_vault.sh <chart-version>
 set -euo pipefail
 
-VERSION="${1:?usage: tools/render_vault.sh <chart-version>}"
-TARGET="//tools:render_writeback_$(echo "$VERSION" | tr '.' '_')"
+VERSION="${1:?usage: tools/render_vault.sh <chart-version> [dev|ha]}"
+VARIANT="${2:-dev}"
+case "$VARIANT" in
+  dev) TARGET="//tools:render_writeback_$(echo "$VERSION" | tr '.' '_')" ;;
+  ha)  TARGET="//tools:render_writeback_ha_$(echo "$VERSION" | tr '.' '_')" ;;
+  *) echo "render_vault: unknown variant '$VARIANT' (want dev|ha)" >&2; exit 1 ;;
+esac
 
 echo "[render_vault] $TARGET"
 exec bazel run "$TARGET"
