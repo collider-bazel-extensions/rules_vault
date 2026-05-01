@@ -72,3 +72,14 @@ server:
   # `kubectl rollout status sts/vault` which the HA install
   # launcher's final wait depends on.
   updateStrategyType: "RollingUpdate"
+
+  # The chart's default `server.affinity` is a HARD podAntiAffinity
+  # (`requiredDuringSchedulingIgnoredDuringExecution`) with
+  # `topologyKey: kubernetes.io/hostname` — i.e., each vault-N pod
+  # must be on a different node. Sane for prod (cluster member
+  # failure isolation), but kind is single-node by default, so
+  # vault-0 schedules and vault-1/vault-2 sit Pending forever
+  # ("pod does not have a host assigned"). Empty string disables
+  # the anti-affinity. Production multi-node deploys override
+  # back to the chart default in their fork.
+  affinity: ""
