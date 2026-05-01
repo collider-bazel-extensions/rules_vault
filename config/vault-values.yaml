@@ -1,0 +1,77 @@
+# Render-time values for rules_vault's pinned manifest.
+#
+# Smoke-fixture footprint: a single Vault StatefulSet running in
+# dev mode (single replica, in-memory storage, auto-unsealed at
+# startup, predictable root token). The Agent Injector and CSI
+# provider are disabled.
+#
+# **NOT a production starting point.** Dev mode means:
+#   - no persistence (every restart loses all secrets)
+#   - no HA (the cluster is a single replica)
+#   - no real init/unseal flow (the seal key is auto-generated
+#     and discarded; everything starts unsealed every time)
+#   - root token is hardcoded into the rendered manifest
+#
+# Production deployments pivot to `server.ha.enabled: true` with
+# integrated storage (Raft), real init + unseal (or auto-unseal
+# via cloud KMS / Transit), and a real auth method. See v0.2 (HA
+# Raft) for the production-shaped alternative.
+
+# ---- top-level toggles ------------------------------------------------------
+global:
+  enabled: true
+
+# Vault Agent Injector — adds a sidecar to user pods that fetches
+# secrets from Vault. Useful but a separate Deployment + a webhook
+# that has to be Available before user pods can schedule. Disabled
+# in v0.1's smoke to keep the footprint single-pod.
+injector:
+  enabled: false
+
+# CSI Secrets Store provider — mounts Vault secrets via the CSI
+# driver. Off for the same reason.
+csi:
+  enabled: false
+
+# ---- server -----------------------------------------------------------------
+server:
+  # Dev mode: single replica, in-memory storage, auto-unsealed,
+  # KV v2 mounted at `secret/`. The chart launches Vault with
+  # `vault server -dev` plus the env vars this block configures.
+  dev:
+    enabled: true
+    # Predictable root token so the smoke test can `X-Vault-Token`
+    # against it. **Hardcoded into the rendered manifest** —
+    # production must replace via Secret + env-var ref + a real
+    # auth method (Kubernetes / JWT-OIDC / userpass / etc.).
+    devRootToken: "smoke-fixture-root-token-do-not-use-in-prod-12345"
+
+  # No PVC: dev mode is in-memory, the chart will skip the volume
+  # claim template anyway. Explicit for legibility.
+  dataStorage:
+    enabled: false
+  auditStorage:
+    enabled: false
+
+  # The chart's default resources block is empty; we set explicit
+  # zero requests/limits so kind's tight ephemeral-storage
+  # allocatable doesn't refuse to schedule. Same lesson rules_kafka
+  # learned the hard way.
+  resources:
+    requests:
+      cpu: "0"
+      memory: "0"
+    limits:
+      cpu: "0"
+      memory: "0"
+
+  # Standalone mode (single replica). Dev mode implies this; the
+  # chart picks the right path based on `server.dev.enabled`.
+  standalone:
+    enabled: false  # dev mode supersedes; explicit avoids the warning
+
+  # Don't render the helm-test Pod (`vault-server-test`). With
+  # `helm test` it'd be a one-off; applied via `kubectl apply` it
+  # spins up unconditionally and runs an in-pod `vault status` poll
+  # that's not what our smoke gates on.
+  enabled: true

@@ -1,0 +1,30 @@
+"""Maintainer-only render flow."""
+
+load("@rules_helm//:defs.bzl", "helm_template")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+# ---- 0.32.0 -----------------------------------------------------------------
+
+helm_template(
+    name = "render_vault_0_32_0",
+    chart = ["@vault_chart_0_32_0//:files"],
+    values = ["//config:vault-values.yaml"],
+    namespace = "vault",
+    release_name = "vault",
+    # Skip the chart's `vault-server-test` Pod — it's a `helm test`
+    # artifact that runs an in-pod `vault status` poll, but applied
+    # via `kubectl apply` it'd just be an extra running Pod the
+    # smoke isn't gated on.
+    helm_template_args = ["--skip-tests"],
+)
+
+sh_binary(
+    name = "render_writeback_0_32_0",
+    srcs = ["writeback.sh"],
+    data = [":render_vault_0_32_0"],
+    args = [
+        "$(rootpath :render_vault_0_32_0)",
+        "private/manifests/vault.yaml",
+    ],
+    visibility = ["//visibility:public"],
+)
