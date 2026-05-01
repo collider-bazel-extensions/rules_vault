@@ -132,5 +132,19 @@ done
 # ---- 7. wait for sts rollout ------------------------------------------------
 "${K[@]}" -n "$NS" rollout status sts/vault --timeout=240s
 
-echo "install_ha: Vault HA Raft cluster ready (3 nodes, sealed=false). Idling until SIGTERM."
+# ---- 8. enable KV v2 secrets engine at `secret/` ----------------------------
+# Dev mode (`vault server -dev`) auto-mounts KV v2 at `secret/`.
+# HA Raft (`vault server -config=...`) starts with NO secrets
+# engines mounted — `secret/data/foo` returns 404 "no handler for
+# route" until an operator runs `vault secrets enable kv-v2`.
+# Mount it so the same KV v2 paths work in both modes.
+echo "install_ha: enabling KV v2 at secret/"
+mounts=$("${K[@]}" -n "$NS" exec vault-0 -- env VAULT_TOKEN="$root_token" \
+    vault secrets list -format=json 2>/dev/null || echo '{}')
+if ! grep -q '"secret/"' <<<"$mounts"; then
+  "${K[@]}" -n "$NS" exec vault-0 -- env VAULT_TOKEN="$root_token" \
+      vault secrets enable -path=secret kv-v2
+fi
+
+echo "install_ha: Vault HA Raft cluster ready (3 nodes, sealed=false, KV v2 mounted at secret/). Idling until SIGTERM."
 while true; do sleep 3600; done
