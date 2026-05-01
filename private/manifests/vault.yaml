@@ -106,7 +106,7 @@ spec:
   podManagementPolicy: Parallel
   replicas: 1
   updateStrategy:
-    type: OnDelete
+    type: RollingUpdate
   selector:
     matchLabels:
       app.kubernetes.io/name: vault

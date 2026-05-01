@@ -70,6 +70,16 @@ server:
   standalone:
     enabled: false  # dev mode supersedes; explicit avoids the warning
 
+  # The chart defaults `updateStrategyType: "OnDelete"` — pods only
+  # roll on manual delete. That's a deliberate safety net for prod
+  # Vault upgrades, but `kubectl rollout status sts/vault` errors
+  # with "rollout status is only available for RollingUpdate
+  # strategy type" against an OnDelete StatefulSet, breaking the
+  # `wait_for_rollouts` gate. Switch to RollingUpdate for the smoke
+  # fixture; production deployments that want manual upgrades
+  # should override back to OnDelete in their fork.
+  updateStrategyType: "RollingUpdate"
+
   # Don't render the helm-test Pod (`vault-server-test`). With
   # `helm test` it'd be a one-off; applied via `kubectl apply` it
   # spins up unconditionally and runs an in-pod `vault status` poll
