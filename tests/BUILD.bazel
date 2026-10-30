@@ -27,7 +27,7 @@ vault_install_test_suite(name = "vault_install_analysis")
 
 # ---- smoke composition ------------------------------------------------------
 
-kind_cluster(name = "cluster", k8s_version = "1.32")
+kind_cluster(name = "cluster", k8s_version = "1.35")
 
 kind_health_check(name = "cluster_health", cluster = ":cluster")
 
@@ -91,7 +91,7 @@ service_test(
 # `vault` namespace name). Apply HA manifest, init+unseal+raft-join
 # via install_ha.sh, run KV v2 round-trip with leader + standby reads.
 
-kind_cluster(name = "cluster_ha", k8s_version = "1.32")
+kind_cluster(name = "cluster_ha", k8s_version = "1.35")
 
 kind_health_check(name = "cluster_ha_health", cluster = ":cluster_ha")
 
