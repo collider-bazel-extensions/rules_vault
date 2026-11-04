@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# vault_server wrapper: resolves runfiles, execs the launcher.
+# Substitution markers use __KEY__ syntax to avoid colliding with bash.
+set -euo pipefail
+
+if [[ -z "${RUNFILES_DIR:-}" ]]; then
+  if [[ -n "${TEST_SRCDIR:-}" ]]; then RUNFILES_DIR="$TEST_SRCDIR"
+  elif [[ -d "${0}.runfiles" ]]; then RUNFILES_DIR="${0}.runfiles"
+  fi
+  : "${RUNFILES_DIR:?vault_server: no runfiles found; run it with bazel run / bazel test}"
+  export RUNFILES_DIR
+fi
+
+resolve() {
+  local p="$1"
+  for c in "${RUNFILES_DIR}/_main/${p}" "${RUNFILES_DIR}/${p}" "${RUNFILES_DIR}/${p#../}"; do
+    [[ -e "$c" ]] && { printf '%s\n' "$c"; return; }
+  done
+  echo "vault_server: not in runfiles: ${p}" >&2
+  exit 1
+}
+
+name='__NAME__'
+tmp="${TEST_TMPDIR:-${TMPDIR:-/tmp}}"
+
+exec python3 "$(resolve '__LAUNCHER__')" \
+  --vault "$(resolve '__VAULT__')" \
+  --env-file "$tmp/$name.env" \
+  --state-dir "$tmp/vault-$name" \
+  --ready-timeout '__READY_TIMEOUT__' \
+  --root-token '__ROOT_TOKEN__' \
+  __CONFIG_ARGS__ \
+  -- __EXTRA_ARGS__ "$@"

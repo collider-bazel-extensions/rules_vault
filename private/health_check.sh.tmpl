@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# vault_server_health_check — exits 0 iff the paired vault_server has
+# written its env file (it does so only after /v1/sys/health answers 200
+# and every setup step has succeeded).
+set -euo pipefail
+
+env_file="${TEST_TMPDIR:-${TMPDIR:-/tmp}}/__ENV_FILE_NAME__"
+if [[ -f "$env_file" ]]; then
+  exit 0
+fi
+echo "[vault_server_health_check] env file not yet present: $env_file" >&2
+exit 1

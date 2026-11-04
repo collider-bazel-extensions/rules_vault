@@ -1,5 +1,56 @@
+"""Private build files for rules_vault. Public surface lives in
+//:defs.bzl, which re-exports from here."""
+
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
 package(default_visibility = ["//visibility:public"])
 
 exports_files([
+    "check_policy.sh",
+    "health_check.sh.tmpl",
     "install_ha.sh",
+    "launcher.py",
+    "server.sh.tmpl",
+    "vault_test_trampoline.sh",
+    "versions.bzl",
 ])
+
+sh_binary(
+    name = "check_policy",
+    srcs = ["check_policy.sh"],
+)
+
+bzl_library(
+    name = "providers",
+    srcs = ["providers.bzl"],
+)
+
+bzl_library(
+    name = "policy",
+    srcs = ["policy.bzl"],
+    deps = [":providers"],
+)
+
+bzl_library(
+    name = "server",
+    srcs = ["server.bzl"],
+    deps = [":providers"],
+)
+
+bzl_library(
+    name = "test",
+    srcs = ["test.bzl"],
+    deps = [":server"],
+)
+
+bzl_library(
+    name = "versions",
+    srcs = ["versions.bzl"],
+)
+
+bzl_library(
+    name = "repositories",
+    srcs = ["repositories.bzl"],
+    deps = [":versions"],
+)

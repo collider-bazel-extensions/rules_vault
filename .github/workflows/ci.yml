@@ -9,7 +9,10 @@ on:
 
 jobs:
   analysis:
-    name: bazel test (ubuntu-latest, analysis)
+    # Analysis tests, policy checks, checksum pins, and the hermetic
+    # vault_server / vault_test suite (dev-mode vault from the pinned
+    # release zip; no container runtime).
+    name: bazel test (ubuntu-latest, hermetic)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,11 +22,28 @@ jobs:
           disk-cache: ${{ github.workflow }}-analysis
           repository-cache: true
 
-      - name: bazel build //...
-        run: bazel build //...
+      - name: Verify NO host vault on PATH
+        run: |
+          if command -v vault >/dev/null 2>&1; then
+            echo "FAIL: vault found at $(command -v vault); the hermetic toolchain test would be meaningless" >&2
+            exit 1
+          fi
 
-      - name: bazel test (analysis only)
-        run: bazel test //... --test_tag_filters=-manual --test_output=errors
+      # The per-platform toolchain targets would download every platform's
+      # vault zip; //toolchain:current builds only the host's.
+      - name: bazel build
+        run: bazel build -- //... -//toolchain/... //toolchain:current
+
+      - name: bazel test (hermetic)
+        run: bazel test //... --build_tests_only --test_tag_filters=-manual --test_output=errors
+
+      - name: Vault pins match HashiCorp's SHA256SUMS
+        run: tools/update_checksums.sh --check
+
+      - name: No vault processes left behind
+        if: always()
+        run: |
+          if pgrep -x vault; then echo "FAIL: vault processes left running" >&2; exit 1; fi
 
       - name: Smoke composition builds
         run: bazel build //tests:smoke_test
