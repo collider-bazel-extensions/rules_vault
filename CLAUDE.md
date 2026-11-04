@@ -25,7 +25,7 @@ rules_vault/
 │   ├── policy.bzl            # vault_policy (+ validation action)
 │   ├── check_policy.sh       # `vault policy fmt` per file; --check-format diff
 │   ├── server.bzl            # vault_server, vault_server_health_check, VaultServerInfo
-│   ├── server.sh.tmpl        # runfiles resolution → launcher.py
+│   ├── server.sh.tmpl        # runfiles resolution (into variables) → launcher.py
 │   ├── health_check.sh.tmpl  # exits 0 iff the env file exists
 │   ├── launcher.py           # ports → vault -dev → /v1/sys/health → configure → env file → SIGTERM
 │   ├── test.bzl              # vault_test macro
@@ -45,7 +45,8 @@ rules_vault/
     ├── server_failure_test.sh  # bad flag / failing setup / readiness timeout / vault_test
     ├── server_cleanup_test.sh  # vault stopped when a vault_test ends
     ├── itest_test.sh         # vault_server as a rules_itest service
-    ├── policy_check_test.sh, health_check_test.sh, checksums_test.sh
+    ├── policy_check_test.sh, health_check_test.sh, checksums_test.sh,
+    ├── wrapper_resolve_test.sh  # a missing runfile stops the server wrapper
     └── smoke_test*.sh, *_wrapper*.sh  # kind compositions (manual)
 ```
 
@@ -89,7 +90,7 @@ Don't use `pkill -f 'vault server'` to clean up: the pattern matches the shell r
 
 ### Test results (last full run: 2026-11-04)
 
-All 18 hermetic test targets pass on Linux x86_64 (Vault 1.21.2). 40 parallel runs of the server tests were clean, and no vault processes were left behind. A bad policy fails `bazel build`, and switching the trampoline back to `exec` fails `server_cleanup_test`; both were checked by hand.
+All 19 hermetic test targets pass on Linux x86_64 (Vault 1.21.2). 40 parallel runs of the server tests were clean, and no vault processes were left behind. A bad policy fails `bazel build`, and switching the trampoline back to `exec` fails `server_cleanup_test`; both were checked by hand.
 
 | Test target | What it verifies | Result |
 |---|---|---|
@@ -101,6 +102,7 @@ All 18 hermetic test targets pass on Linux x86_64 (Vault 1.21.2). 40 parallel ru
 | `//tests:itest_test` | vault_server + health check as an itest_service | PASSED |
 | `//tests:policy_check_test` | good / bad capability / syntax error / check_format | PASSED |
 | `//tests:health_check_test` | exits non-zero without env file, 0 with | PASSED |
+| `//tests:wrapper_resolve_test` | a missing runfile (vault binary, setup script) stops the server wrapper, naming it, before the launcher runs | PASSED |
 | `//tests:checksums_test` | every pinned URL has a 64-hex SHA-256 | PASSED |
 | `//tests:vault_server_analysis` (8), `vault_install_analysis` (1) | providers, health check, duplicate policy, bad / reserved token, bad timeout, bad mount | PASSED |
 
