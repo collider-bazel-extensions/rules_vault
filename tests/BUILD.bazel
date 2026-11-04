@@ -343,3 +343,22 @@ service_test(
         "requires-network",
     ],
 )
+
+# The wrapper stops on a missing runfile (vault binary, a setup script)
+# instead of passing an empty path to the launcher.
+sh_test(
+    name = "wrapper_resolve_test",
+    srcs = ["wrapper_resolve_test.sh"],
+    args = [
+        "$(rootpath :bad_setup_server)",
+        "$(rootpath //private:launcher.py)",
+        "$(rootpath //toolchain:current)",
+        "$(rootpath //tests/testdata:fail_setup.sh)",
+    ],
+    data = [
+        ":bad_setup_server",
+        "//private:launcher.py",
+        "//tests/testdata:fail_setup.sh",
+        "//toolchain:current",
+    ],
+)

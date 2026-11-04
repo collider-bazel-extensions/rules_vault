@@ -56,8 +56,12 @@ def _check_mounts(label, attr, mounts):
                 fail("{}: {} entry {} = {}: paths and types are letters, digits, '_', '-', '.', '/'.".format(
                     label, attr, repr(path), repr(typ)))
 
-def _resolved(p):
-    return "\"$(resolve {})\"".format(_shell_quote(p))
+def _resolved(flag, p, prefix = ""):
+    # One wrapper line: resolve into a variable first (a failing $(resolve)
+    # inside an argument list would not stop the script under `set -e`),
+    # then append `flag <prefix><path>` to the opts array.
+    return "p=\"$(resolve {})\"; opts+=({} {}\"$p\")".format(
+        _shell_quote(p), flag, _shell_quote(prefix) if prefix else "")
 
 def _vault_server_impl(ctx):
     vt = ctx.toolchains[_TOOLCHAIN].vault
@@ -74,9 +78,9 @@ def _vault_server_impl(ctx):
 
     config_args = []
     for path, typ in ctx.attr.secrets_engines.items():
-        config_args.append("--secrets-engine " + _shell_quote(path.strip("/") + "=" + typ))
+        config_args.append("opts+=(--secrets-engine {})".format(_shell_quote(path.strip("/") + "=" + typ)))
     for path, typ in ctx.attr.auth_methods.items():
-        config_args.append("--auth-method " + _shell_quote(path.strip("/") + "=" + typ))
+        config_args.append("opts+=(--auth-method {})".format(_shell_quote(path.strip("/") + "=" + typ)))
 
     policy_files = []
     seen = {}
@@ -89,7 +93,7 @@ def _vault_server_impl(ctx):
     for name in sorted(seen.keys()):
         f = seen[name]
         policy_files.append(f)
-        config_args.append("--policy {}={}".format(_shell_quote(name), _resolved(f.short_path)))
+        config_args.append(_resolved("--policy", f.short_path, name + "="))
 
     setup_runfiles = []
     setup_files = []
@@ -98,13 +102,13 @@ def _vault_server_impl(ctx):
         if exe:
             setup_files.append(exe)
             setup_runfiles.append(t[DefaultInfo].default_runfiles)
-            config_args.append("--setup " + _resolved(exe.short_path))
+            config_args.append(_resolved("--setup", exe.short_path))
         else:
             for f in t[DefaultInfo].files.to_list():
                 setup_files.append(f)
-                config_args.append("--setup " + _resolved(f.short_path))
+                config_args.append(_resolved("--setup", f.short_path))
     if ctx.attr.audit:
-        config_args.append("--audit")
+        config_args.append("opts+=(--audit)")
 
     wrapper = ctx.actions.declare_file(ctx.label.name + ".sh")
     ctx.actions.expand_template(
@@ -116,7 +120,7 @@ def _vault_server_impl(ctx):
             "__VAULT__":         vt.vault_bin.short_path,
             "__READY_TIMEOUT__": check_timeout(ctx.label, ctx.attr.ready_timeout),
             "__ROOT_TOKEN__":    token,
-            "__CONFIG_ARGS__":   " \\\n  ".join(config_args),
+            "__CONFIG_ARGS__":   "\n".join(config_args),
             "__EXTRA_ARGS__":    " ".join([_shell_quote(a) for a in ctx.attr.extra_args]),
         },
         is_executable = True,

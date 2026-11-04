@@ -23,11 +23,18 @@ resolve() {
 name='__NAME__'
 tmp="${TEST_TMPDIR:-${TMPDIR:-/tmp}}"
 
-exec python3 "$(resolve '__LAUNCHER__')" \
-  --vault "$(resolve '__VAULT__')" \
+# Resolve into variables first: a failing $(resolve) inside an argument
+# list would not stop the script under `set -e`.
+launcher="$(resolve '__LAUNCHER__')"
+vault="$(resolve '__VAULT__')"
+opts=()
+__CONFIG_ARGS__
+
+exec python3 "$launcher" \
+  --vault "$vault" \
   --env-file "$tmp/$name.env" \
   --state-dir "$tmp/vault-$name" \
   --ready-timeout '__READY_TIMEOUT__' \
   --root-token '__ROOT_TOKEN__' \
-  __CONFIG_ARGS__ \
+  ${opts[@]+"${opts[@]}"} \
   -- __EXTRA_ARGS__ "$@"
