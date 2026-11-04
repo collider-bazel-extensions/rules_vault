@@ -1,7 +1,38 @@
-"""Public API for rules_vault."""
+"""Public API for rules_vault.
+
+Hermetic server (test-time, no cluster):
+  vault_server               — long-running dev-mode vault on a free port;
+                               writes $TEST_TMPDIR/<name>.env once healthy
+                               and configured.
+  vault_server_health_check  — pairs with vault_server for itest_service.
+  vault_test                 — sh_test macro: one test, one server.
+  vault_policy               — HCL policies, parsed by `vault policy fmt`
+                               on every build.
+
+Cluster install (kind / production-shaped):
+  vault_install / vault_health_check        — dev mode, chart-rendered.
+  vault_install_ha / vault_health_check_ha  — HA Raft, init + unseal.
+"""
 
 load("@rules_kubectl//:defs.bzl", "kubectl_apply", "kubectl_apply_health_check")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("//private:policy.bzl", _vault_policy = "vault_policy")
+load("//private:providers.bzl",
+     _VaultBinaryInfo = "VaultBinaryInfo",
+     _VaultPolicyInfo = "VaultPolicyInfo")
+load("//private:server.bzl",
+     _VaultServerInfo = "VaultServerInfo",
+     _vault_server = "vault_server",
+     _vault_server_health_check = "vault_server_health_check")
+load("//private:test.bzl", _vault_test = "vault_test")
+
+vault_policy = _vault_policy
+vault_server = _vault_server
+vault_server_health_check = _vault_server_health_check
+vault_test = _vault_test
+VaultBinaryInfo = _VaultBinaryInfo
+VaultPolicyInfo = _VaultPolicyInfo
+VaultServerInfo = _VaultServerInfo
 
 # In v0.1's smoke render (Vault chart 0.32.0, dev mode), the chart
 # emits one StatefulSet (`vault`, 1 replica, in-memory storage,

@@ -6,12 +6,23 @@ exports_files([
     "MODULE.bazel",
     "WORKSPACE",
     "defs.bzl",
+    "extensions.bzl",
 ])
 
 bzl_library(
     name = "defs",
     srcs = ["defs.bzl"],
     deps = [
+        "//private:policy",
+        "//private:providers",
+        "//private:server",
+        "//private:test",
         "@rules_kubectl//:defs",
     ],
+)
+
+bzl_library(
+    name = "extensions",
+    srcs = ["extensions.bzl"],
+    deps = ["//private:repositories"],
 )

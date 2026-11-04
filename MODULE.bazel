@@ -1,8 +1,14 @@
-"""rules_vault — hermetic HashiCorp Vault install for Bazel test compositions."""
+"""rules_vault — hermetic HashiCorp Vault for Bazel tests.
+
+  Hermetic server (no cluster): vault_server, vault_server_health_check,
+  vault_test, vault_policy — over a pinned, SHA-256-verified vault binary.
+
+  Cluster install: vault_install (dev mode), vault_install_ha (HA Raft).
+"""
 
 module(
     name = "rules_vault",
-    version = "0.2.0",
+    version = "0.3.0",
 )
 
 bazel_dep(name = "bazel_skylib", version = "1.8.2")
@@ -21,6 +27,20 @@ git_override(
 # (dev mode) only emits a kubectl_apply, no rules_shell needed for that
 # code path.
 bazel_dep(name = "rules_shell", version = "0.8.0")
+
+# Public binary toolchain: the vault binary (server + CLI). Per-platform
+# repos (vault_<ver>_<plat>) come from the `vault` extension, which only
+# honours the root module's tags — consumers declare the same version.
+vault = use_extension("//:extensions.bzl", "vault")
+vault.version(version = "1.21.2")
+use_repo(
+    vault,
+    "vault_1_21_2_darwin_amd64",
+    "vault_1_21_2_darwin_arm64",
+    "vault_1_21_2_linux_amd64",
+    "vault_1_21_2_linux_arm64",
+)
+register_toolchains("@rules_vault//toolchain:all")
 
 # ---- dev-only: smoke composition --------------------------------------------
 bazel_dep(name = "rules_itest", version = "0.0.52", dev_dependency = True)

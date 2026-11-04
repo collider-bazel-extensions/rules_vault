@@ -1,0 +1,24 @@
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("@rules_vault//:defs.bzl", "vault_policy")
+
+package(default_visibility = ["//tests:__subpackages__"])
+
+exports_files(glob(["**"]))
+
+vault_policy(
+    name = "policies",
+    srcs = glob(["policies/*.hcl"]),
+    check_format = True,
+)
+
+# Same basename as policies/worker.hcl; for the duplicate-name analysis test.
+vault_policy(
+    name = "dup_worker",
+    srcs = ["dup/worker.hcl"],
+    tags = ["manual"],
+)
+
+sh_binary(
+    name = "configure",
+    srcs = ["configure.sh"],
+)

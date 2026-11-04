@@ -1,5 +1,12 @@
 """Tests for rules_vault.
 
+Hermetic server (no container runtime; `bazel test //tests/...`):
+- example_test: issue #4's acceptance example — configure.sh, KV, PKI
+  issue + CSR signing, worker / renewal policies, revoke by accessor.
+- default_test, server_test, server_failure_test, health_check_test,
+  policy_check_test, checksums_test, analysis tests.
+
+Cluster (manual; needs Docker or podman):
 - Analysis test verifies the macro instantiates cleanly.
 - Smoke composition: kind cluster + Vault dev-mode StatefulSet.
   Smoke `kubectl run`s a curl pod, POSTs a KV v2 secret to
@@ -18,12 +25,200 @@ load(
     "vault_health_check_ha",
     "vault_install",
     "vault_install_ha",
+    "vault_server",
+    "vault_server_health_check",
+    "vault_test",
 )
-load(":analysis_tests.bzl", "vault_install_test_suite")
+load(":analysis_tests.bzl", "vault_install_test_suite", "vault_server_test_suite")
 
 # ---- analysis ---------------------------------------------------------------
 
 vault_install_test_suite(name = "vault_install_analysis")
+
+vault_server_test_suite(name = "vault_server_analysis")
+
+# ---- hermetic server --------------------------------------------------------
+
+vault_test(
+    name = "example_test",
+    srcs = ["example_test.sh"],
+    secrets_engines = {
+        "pki": "pki",
+        "pki_int": "pki",
+    },
+    policies = ["//tests/testdata:policies"],
+    setup = ["//tests/testdata:configure"],
+)
+
+vault_test(
+    name = "default_test",
+    srcs = ["default_test.sh"],
+    args = [
+        "one",
+        "'two words'",
+    ],
+    env = {"FROM_ENV_ATTR": "yes"},
+)
+
+vault_server(
+    name = "test_server",
+    audit = True,
+    auth_methods = {"approle": "approle"},
+    extra_args = ["-log-level=debug"],
+    root_token = "test-token",
+    secrets_engines = {"transit": "transit"},
+    tags = ["manual"],
+)
+
+vault_server_health_check(
+    name = "test_server_health",
+    server = ":test_server",
+    tags = ["manual"],
+)
+
+sh_test(
+    name = "server_test",
+    srcs = ["server_test.sh"],
+    args = ["$(rootpath :test_server)"],
+    data = [":test_server"],
+)
+
+sh_test(
+    name = "health_check_test",
+    srcs = ["health_check_test.sh"],
+    args = ["$(rootpath :test_server_health)"],
+    data = [":test_server_health"],
+)
+
+vault_server(
+    name = "bad_flag_server",
+    extra_args = ["-no-such-flag"],
+    tags = ["manual"],
+)
+
+vault_server(
+    name = "bad_setup_server",
+    setup = ["//tests/testdata:fail_setup.sh"],
+    tags = ["manual"],
+)
+
+vault_server(
+    name = "slow_server",
+    ready_timeout = "0.001",
+    tags = ["manual"],
+)
+
+vault_test(
+    name = "failing_vault_test",
+    srcs = ["never_runs.sh"],
+    setup = ["//tests/testdata:fail_setup.sh"],
+    tags = ["manual"],
+)
+
+sh_test(
+    name = "server_failure_test",
+    srcs = ["server_failure_test.sh"],
+    args = [
+        "$(rootpath :bad_flag_server)",
+        "$(rootpath :bad_setup_server)",
+        "$(rootpath :slow_server)",
+        # failing_vault_test's trampoline, run with the arguments its
+        # sh_test would pass (a test target's args don't apply as data).
+        "$(rootpath //private:vault_test_trampoline.sh)",
+        "$(rootpath :failing_vault_test_vault)",
+        "$(rootpath :failing_vault_test_inner)",
+    ],
+    data = [
+        ":bad_flag_server",
+        ":bad_setup_server",
+        ":failing_vault_test_inner",
+        ":failing_vault_test_vault",
+        ":slow_server",
+        "//private:vault_test_trampoline.sh",
+    ],
+)
+
+vault_test(
+    name = "record_port",
+    srcs = ["record_port.sh"],
+    tags = ["manual"],
+)
+
+sh_test(
+    name = "server_cleanup_test",
+    srcs = ["server_cleanup_test.sh"],
+    args = [
+        "$(rootpath //private:vault_test_trampoline.sh)",
+        "$(rootpath :record_port_vault)",
+        "$(rootpath :record_port_inner)",
+    ],
+    data = [
+        ":record_port_inner",
+        ":record_port_vault",
+        "//private:vault_test_trampoline.sh",
+    ],
+)
+
+# vault_server as a rules_itest service.
+vault_server(
+    name = "itest_server",
+    secrets_engines = {"transit": "transit"},
+    tags = ["manual"],
+)
+
+vault_server_health_check(
+    name = "itest_server_health",
+    server = ":itest_server",
+    tags = ["manual"],
+)
+
+itest_service(
+    name = "vault_hermetic_svc",
+    exe = ":itest_server",
+    health_check = ":itest_server_health",
+    tags = ["manual"],
+)
+
+sh_test(
+    name = "itest_test_bin",
+    srcs = ["itest_test.sh"],
+    tags = ["manual"],
+)
+
+service_test(
+    name = "itest_test",
+    services = [":vault_hermetic_svc"],
+    test = ":itest_test_bin",
+)
+
+sh_test(
+    name = "policy_check_test",
+    srcs = ["policy_check_test.sh"],
+    args = [
+        "$(rootpath //private:check_policy)",
+        "$(rootpath //toolchain:current)",
+        "$(rootpath //tests/testdata:policies/worker.hcl)",
+        "$(rootpath //tests/testdata:bad/bad_capability.hcl)",
+        "$(rootpath //tests/testdata:bad/bad_syntax.hcl)",
+        "$(rootpath //tests/testdata:bad/unformatted.hcl)",
+    ],
+    data = [
+        "//private:check_policy",
+        "//tests/testdata:bad/bad_capability.hcl",
+        "//tests/testdata:bad/bad_syntax.hcl",
+        "//tests/testdata:bad/unformatted.hcl",
+        "//tests/testdata:policies/worker.hcl",
+        "//toolchain:current",
+    ],
+)
+
+sh_test(
+    name = "checksums_test",
+    srcs = ["checksums_test.sh"],
+    data = ["//private:versions.bzl"],
+)
+
+# ---- cluster smoke compositions (manual) ------------------------------------
 
 # ---- smoke composition ------------------------------------------------------
 
