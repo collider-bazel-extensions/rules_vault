@@ -22,6 +22,12 @@ sh_binary(
 )
 
 bzl_library(
+    name = "cli",
+    srcs = ["cli.bzl"],
+    deps = ["//toolchain:toolchain"],
+)
+
+bzl_library(
     name = "providers",
     srcs = ["providers.bzl"],
 )

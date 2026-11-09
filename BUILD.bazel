@@ -1,4 +1,5 @@
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load("//private:cli.bzl", "vault_cli")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -26,3 +27,7 @@ bzl_library(
     srcs = ["extensions.bzl"],
     deps = ["//private:repositories"],
 )
+
+# `bazel run @rules_vault//:vault -- <args>`: the pinned vault CLI, run from
+# the caller's directory.
+vault_cli(name = "vault")

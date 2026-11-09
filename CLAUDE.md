@@ -15,12 +15,15 @@ See DESIGN.md.
 
 ```
 rules_vault/
+├── .gitattributes            # tests/ + tools/ export-ignore (they load dev-only modules)
+├── BUILD.bazel               # //:vault — the pinned CLI (`bazel run`)
 ├── MODULE.bazel              # module; vault toolchain; dev deps (helm, itest, kind)
 ├── defs.bzl                  # public API (install macros defined here; server rules re-exported)
 ├── extensions.bzl            # `vault.version()` → vault_<ver>_<plat> repos (is_root-guarded)
 ├── private/
 │   ├── versions.bzl          # VAULT_VERSIONS: url / sha256 per platform
 │   ├── repositories.bzl      # per-platform repo: release zip → vault
+│   ├── cli.bzl               # vault_cli: toolchain binary → run wrapper (cd $BUILD_WORKING_DIRECTORY)
 │   ├── providers.bzl         # VaultBinaryInfo, VaultPolicyInfo
 │   ├── policy.bzl            # vault_policy (+ validation action)
 │   ├── check_policy.sh       # `vault policy fmt` per file; --check-format diff
@@ -40,6 +43,7 @@ rules_vault/
     ├── analysis_tests.bzl    # install macro; server/policy providers; bad-attribute failures
     ├── testdata/             # policies (worker, renewal), bad policies, configure.sh, fail_setup.sh
     ├── example_test.sh       # issue #4 acceptance: KV, PKI issue + CSR sign, policies, revoke
+    ├── cli_test.sh           # //:vault: pinned version, caller's directory, args forwarded
     ├── default_test.sh       # dev defaults, args + env forwarded
     ├── server_test.sh        # direct run: env file, mounts, audit, extra_args, SIGTERM
     ├── server_failure_test.sh  # bad flag / failing setup / readiness timeout / vault_test
@@ -76,6 +80,10 @@ load("@rules_vault//:defs.bzl",
 )
 ```
 
+`@rules_vault//:vault` (`private/cli.bzl`) is the pinned CLI: `bazel run @rules_vault//:vault -- <args>` runs from the caller's directory.
+
+The release archive leaves out `tests/` and `tools/` (`.gitattributes` `export-ignore`) because they load dev-only modules; nothing else may reference them. `REPO.bazel` `ignore_directories` is not an option: it hides them from this repo too.
+
 ## Development
 
 ```sh
@@ -88,9 +96,9 @@ bash tools/render_vault.sh 0.32.0 [dev|ha]   # re-render a chart manifest
 
 Don't use `pkill -f 'vault server'` to clean up: the pattern matches the shell running it. Use `pgrep -x vault`.
 
-### Test results (last full run: 2026-11-04)
+### Test results (last full run: 2026-11-08)
 
-All 19 hermetic test targets pass on Linux x86_64 (Vault 1.21.2). 40 parallel runs of the server tests were clean, and no vault processes were left behind. A bad policy fails `bazel build`, and switching the trampoline back to `exec` fails `server_cleanup_test`; both were checked by hand.
+All 20 hermetic test targets pass on Linux x86_64 (Vault 1.21.2). 40 parallel runs of the server tests were clean, and no vault processes were left behind. A bad policy fails `bazel build`, and switching the trampoline back to `exec` fails `server_cleanup_test`, and dropping the wrapper's `cd` or its absolute runfiles path fails `cli_test`; all were were checked by hand.
 
 | Test target | What it verifies | Result |
 |---|---|---|
@@ -103,10 +111,11 @@ All 19 hermetic test targets pass on Linux x86_64 (Vault 1.21.2). 40 parallel ru
 | `//tests:policy_check_test` | good / bad capability / syntax error / check_format | PASSED |
 | `//tests:health_check_test` | exits non-zero without env file, 0 with | PASSED |
 | `//tests:wrapper_resolve_test` | a missing runfile (vault binary, setup script) stops the server wrapper, naming it, before the launcher runs | PASSED |
+| `//tests:cli_test` | `//:vault` runs the pinned version from `RUNFILES_DIR` (also a relative one); relative paths resolve from `BUILD_WORKING_DIRECTORY`; args forwarded | PASSED |
 | `//tests:checksums_test` | every pinned URL has a 64-hex SHA-256 | PASSED |
 | `//tests:vault_server_analysis` (8), `vault_install_analysis` (1) | providers, health check, duplicate policy, bad / reserved token, bad timeout, bad mount | PASSED |
 
-The kind smokes are unchanged from v0.2 (install code untouched); they build.
+The kind smokes (`smoke_test`, `smoke_test_ha`) pass under rootless podman (2026-11-08).
 
 ## Known limitations
 
