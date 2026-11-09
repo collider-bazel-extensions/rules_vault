@@ -9,7 +9,7 @@
 
 HashiCorp ships one `vault` binary per platform, which is both server and CLI, as a release zip. Checksums are the release's `vault_<ver>_SHA256SUMS`. `tools/update_checksums.sh` re-derives them and cross-checks each against a download; CI runs its `--check`. `//tests:checksums_test` fails on any empty or malformed pin.
 
-- **Extension:** the `vault` extension creates `@vault_<ver>_<plat>` repos and is `mod.is_root`-guarded, like the other repos in this organization.
+- **Extension:** the `vault` extension creates `@vault_<ver>_<plat>` repos for every module's `vault.version()` tags, deduplicated. The repos are named by version, so tags from different modules can't collide. Through v0.4.0 it honoured only the root's tags (`mod.is_root`), but rules_vault's own `MODULE.bazel` imports `vault_1_21_2_*` and registers the toolchain for every consumer, so a root without the tag failed to resolve, and a root repeating it crashed the extension (same bug as rules_atlas#12). An unsupported version fails naming `vault.version`. CI's `consumer` job (`.github/consumer/check.sh`) checks this from the commit's `git archive`.
 - **Naming:** the `vault_chart` extension in `//tools` is separate. It downloads the Helm chart, at maintainer time only.
 - **Tag shape:** the tag is `vault.version(version = ...)`, not the `versions = [...]` list the issue sketched. The toolchain targets name one version's repos, as in rules_prometheus, so a list would suggest a choice the toolchains can't make.
 

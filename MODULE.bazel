@@ -8,7 +8,7 @@
 
 module(
     name = "rules_vault",
-    version = "0.4.0",
+    version = "0.4.1",
 )
 
 bazel_dep(name = "bazel_skylib", version = "1.8.2")
@@ -29,8 +29,8 @@ git_override(
 bazel_dep(name = "rules_shell", version = "0.8.0")
 
 # Public binary toolchain: the vault binary (server + CLI). Per-platform
-# repos (vault_<ver>_<plat>) come from the `vault` extension, which only
-# honours the root module's tags — consumers declare the same version.
+# repos (vault_<ver>_<plat>) come from the `vault` extension, which creates
+# them for every module's tags; consumers need no wiring of their own.
 vault = use_extension("//:extensions.bzl", "vault")
 vault.version(version = "1.21.2")
 use_repo(
