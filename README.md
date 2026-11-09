@@ -37,7 +37,7 @@ bazel_dep(name = "rules_vault", version = "0.4.0")
 git_override(
     module_name = "rules_vault",
     remote = "https://github.com/collider-bazel-extensions/rules_vault",
-    tag = "v0.4.0",
+    commit = "3d346a11eb6b322e77ee3cd1354d0a131b5282dc",  # v0.4.0
 )
 
 # rules_vault depends on rules_kubectl, which is not in the BCR either.
@@ -65,9 +65,9 @@ To pin by archive and integrity instead of a git commit, replace the `git_overri
 ```python
 archive_override(
     module_name = "rules_vault",
-    urls = ["https://github.com/collider-bazel-extensions/rules_vault/archive/refs/tags/v0.3.1.tar.gz"],
-    strip_prefix = "rules_vault-0.3.1",
-    integrity = "sha256-DSnRJf7C963Xnppd+R+JQtQ4hdkyZHiO+D+OpXGGBO4=",
+    urls = ["https://github.com/collider-bazel-extensions/rules_vault/archive/refs/tags/v0.4.0.tar.gz"],
+    strip_prefix = "rules_vault-0.4.0",
+    integrity = "sha256-F8DQvOuY67hd45MyYafSdRLiDDpRcNEaRptgVypFJwo=",
 )
 ```
 
