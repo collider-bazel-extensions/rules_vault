@@ -98,7 +98,7 @@ Don't use `pkill -f 'vault server'` to clean up: the pattern matches the shell r
 
 ### Test results (last full run: 2026-11-08)
 
-All 20 hermetic test targets pass on Linux x86_64 (Vault 1.21.2). 40 parallel runs of the server tests were clean, and no vault processes were left behind. A bad policy fails `bazel build`, and switching the trampoline back to `exec` fails `server_cleanup_test`, and dropping the wrapper's `cd` fails `cli_test`; all three were checked by hand.
+All 20 hermetic test targets pass on Linux x86_64 (Vault 1.21.2). 40 parallel runs of the server tests were clean, and no vault processes were left behind. A bad policy fails `bazel build`, and switching the trampoline back to `exec` fails `server_cleanup_test`, and dropping the wrapper's `cd` or its absolute runfiles path fails `cli_test`; all were were checked by hand.
 
 | Test target | What it verifies | Result |
 |---|---|---|
@@ -111,7 +111,7 @@ All 20 hermetic test targets pass on Linux x86_64 (Vault 1.21.2). 40 parallel ru
 | `//tests:policy_check_test` | good / bad capability / syntax error / check_format | PASSED |
 | `//tests:health_check_test` | exits non-zero without env file, 0 with | PASSED |
 | `//tests:wrapper_resolve_test` | a missing runfile (vault binary, setup script) stops the server wrapper, naming it, before the launcher runs | PASSED |
-| `//tests:cli_test` | `//:vault` runs the pinned version from `RUNFILES_DIR`; relative paths resolve from `BUILD_WORKING_DIRECTORY`; args forwarded | PASSED |
+| `//tests:cli_test` | `//:vault` runs the pinned version from `RUNFILES_DIR` (also a relative one); relative paths resolve from `BUILD_WORKING_DIRECTORY`; args forwarded | PASSED |
 | `//tests:checksums_test` | every pinned URL has a 64-hex SHA-256 | PASSED |
 | `//tests:vault_server_analysis` (8), `vault_install_analysis` (1) | providers, health check, duplicate policy, bad / reserved token, bad timeout, bad mount | PASSED |
 

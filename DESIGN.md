@@ -17,7 +17,7 @@ HashiCorp ships one `vault` binary per platform, which is both server and CLI, a
 
 Operators run runbooks against a real Vault with the version the build pins, so `vault_cli` turns the resolved toolchain's binary into an executable.
 
-- **Wrapper, not a symlink.** A symlink would run in the runfiles tree under `bazel run`, so `policy fmt ./p.hcl` or `-ca-cert=./ca.pem` would resolve there. The generated bash wrapper finds the binary (`$0.runfiles`, else `RUNFILES_DIR`), changes to `$BUILD_WORKING_DIRECTORY` when set, then `exec`s vault with the arguments unchanged. rules_kubernetes and rules_pg use the same wrapper shape.
+- **Wrapper, not a symlink.** A symlink would run in the runfiles tree under `bazel run`, so `policy fmt ./p.hcl` or `-ca-cert=./ca.pem` would resolve there. The generated bash wrapper finds the runfiles (`$0.runfiles`, else `RUNFILES_DIR`, made absolute), changes to `$BUILD_WORKING_DIRECTORY` when set, then `exec`s vault with the arguments unchanged. rules_kubernetes and rules_pg use the same wrapper shape.
 - **Toolchain, not a per-platform select.** Only one version is pinned, so the toolchain already names the right binary for the host.
 
 ## Release archive

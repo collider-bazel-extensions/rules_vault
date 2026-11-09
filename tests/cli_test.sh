@@ -21,6 +21,12 @@ BUILD_WORKING_DIRECTORY="$caller" "$cli" policy fmt p.hcl >/dev/null \
     || fail "policy fmt p.hcl from BUILD_WORKING_DIRECTORY"
 grep -q 'capabilities = \["read"\]' "$caller/p.hcl" || fail "p.hcl not formatted: $(cat "$caller/p.hcl")"
 
+# A relative RUNFILES_DIR still works after the cd.
+rel="$(realpath --relative-to="$PWD" "$RUNFILES_DIR")"
+[[ "$rel" != /* ]] || fail "could not make RUNFILES_DIR relative"
+RUNFILES_DIR="$rel" BUILD_WORKING_DIRECTORY="$caller" "$cli" policy fmt p.hcl >/dev/null \
+    || fail "relative RUNFILES_DIR broke after the cd"
+
 # Arguments are forwarded unchanged.
 BUILD_WORKING_DIRECTORY="$caller" "$cli" policy fmt "no such.hcl" 2>"$TEST_TMPDIR/err" \
     && fail "missing file accepted"
