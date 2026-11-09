@@ -33,11 +33,11 @@ The server rules need no host `vault`: the binary comes from HashiCorp's release
 ## Installation
 
 ```python
-bazel_dep(name = "rules_vault", version = "0.4.0")
+bazel_dep(name = "rules_vault", version = "0.4.1")
 git_override(
     module_name = "rules_vault",
     remote = "https://github.com/collider-bazel-extensions/rules_vault",
-    commit = "3d346a11eb6b322e77ee3cd1354d0a131b5282dc",  # v0.4.0
+    commit = "667d5ece3bc2fd3eb91fed0fcab47737ef656083",  # v0.4.1
 )
 
 # rules_vault depends on rules_kubectl, which is not in the BCR either.
@@ -55,9 +55,9 @@ To pin by archive and integrity instead of a git commit, replace the `git_overri
 ```python
 archive_override(
     module_name = "rules_vault",
-    urls = ["https://github.com/collider-bazel-extensions/rules_vault/archive/refs/tags/v0.4.0.tar.gz"],
-    strip_prefix = "rules_vault-0.4.0",
-    integrity = "sha256-F8DQvOuY67hd45MyYafSdRLiDDpRcNEaRptgVypFJwo=",
+    urls = ["https://github.com/collider-bazel-extensions/rules_vault/archive/refs/tags/v0.4.1.tar.gz"],
+    strip_prefix = "rules_vault-0.4.1",
+    integrity = "sha256-Hv+jTaQRKE0oaKipcglnQKXr0ZTtIPxB64XrOlo9hN8=",
 )
 ```
 
