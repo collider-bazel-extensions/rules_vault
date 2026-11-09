@@ -48,16 +48,6 @@ git_override(
     commit = "81b60ab80df46b64c612f2576ffef0a7af98ccb6",  # v0.2.0
 )
 
-# The vault binary for vault_server / vault_test / vault_policy.
-vault = use_extension("@rules_vault//:extensions.bzl", "vault")
-vault.version(version = "1.21.2")
-use_repo(
-    vault,
-    "vault_1_21_2_darwin_amd64",
-    "vault_1_21_2_darwin_arm64",
-    "vault_1_21_2_linux_amd64",
-    "vault_1_21_2_linux_arm64",
-)
 ```
 
 To pin by archive and integrity instead of a git commit, replace the `git_override` with:
@@ -71,7 +61,9 @@ archive_override(
 )
 ```
 
-The `vault` extension only honours the root module's `version` tags (the `mod.is_root` guard used across this organization), so declare it in your own `MODULE.bazel`. rules_vault registers the toolchains itself. Bzlmod only.
+rules_vault's own `MODULE.bazel` fetches vault 1.21.2 and registers the toolchain, so no `vault` extension wiring is needed. Bzlmod only.
+
+The `vault` extension creates `@vault_<ver>_<plat>` repos for every module's `vault.version(...)` tags, deduplicated. A version you add yourself gives you repos to `use_repo`; the registered toolchain (and `//:vault`) stays on rules_vault's pinned version. A version not pinned in `private/versions.bzl` fails with a message naming `vault.version`. Before v0.4.1 only the root module's tags counted, so a root without `vault.version(version = "1.21.2")` failed with `does not generate repository "vault_1_21_2_darwin_amd64"`; the `vault.version(...)` / `use_repo(...)` lines earlier READMEs asked for are harmless but no longer needed.
 
 The release archive leaves out `tests/` and `tools/`, which load dev-only modules (rules_itest, rules_kind, rules_helm), so `bazel query @rules_vault//...` works with `archive_override`. A `git_override` checks out the whole repository, `tests/` and `tools/` included, and `@rules_vault//...` then fails to load; name packages instead (`@rules_vault//:all`, `@rules_vault//toolchain:all`).
 
@@ -79,7 +71,7 @@ The release archive leaves out `tests/` and `tools/`, which load dev-only module
 
 ## The vault CLI
 
-`@rules_vault//:vault` runs the toolchain's `vault`, the version you pin with `vault.version(...)`, with whatever arguments you give it:
+`@rules_vault//:vault` runs the toolchain's `vault` (rules_vault's pinned version, 1.21.2) with whatever arguments you give it:
 
 ```sh
 bazel run @rules_vault//:vault -- version

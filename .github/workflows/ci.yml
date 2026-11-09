@@ -8,6 +8,22 @@ on:
   workflow_dispatch:
 
 jobs:
+  consumer:
+    # rules_vault as a dependency, from the commit's git archive: a root
+    # without vault.version() resolves, repeated / unsupported versions,
+    # and @rules_vault//... loads.
+    name: consumer (ubuntu-latest, git archive)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bazel-contrib/setup-bazel@0.15.0
+        with:
+          bazelisk-cache: true
+          repository-cache: true
+
+      - name: Consumer checks
+        run: .github/consumer/check.sh "$RUNNER_TEMP/consumer"
+
   analysis:
     # Analysis tests, policy checks, checksum pins, and the hermetic
     # vault_server / vault_test suite (dev-mode vault from the pinned

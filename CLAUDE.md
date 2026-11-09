@@ -19,7 +19,7 @@ rules_vault/
 ├── BUILD.bazel               # //:vault — the pinned CLI (`bazel run`)
 ├── MODULE.bazel              # module; vault toolchain; dev deps (helm, itest, kind)
 ├── defs.bzl                  # public API (install macros defined here; server rules re-exported)
-├── extensions.bzl            # `vault.version()` → vault_<ver>_<plat> repos (is_root-guarded)
+├── extensions.bzl            # `vault.version()` → vault_<ver>_<plat> repos (all modules' tags, deduplicated)
 ├── private/
 │   ├── versions.bzl          # VAULT_VERSIONS: url / sha256 per platform
 │   ├── repositories.bzl      # per-platform repo: release zip → vault
@@ -96,7 +96,7 @@ bash tools/render_vault.sh 0.32.0 [dev|ha]   # re-render a chart manifest
 
 Don't use `pkill -f 'vault server'` to clean up: the pattern matches the shell running it. Use `pgrep -x vault`.
 
-### Test results (last full run: 2026-11-08)
+### Test results (last full run: 2026-11-09)
 
 All 20 hermetic test targets pass on Linux x86_64 (Vault 1.21.2). 40 parallel runs of the server tests were clean, and no vault processes were left behind. A bad policy fails `bazel build`, and switching the trampoline back to `exec` fails `server_cleanup_test`, and dropping the wrapper's `cd` or its absolute runfiles path fails `cli_test`; all were were checked by hand.
 
