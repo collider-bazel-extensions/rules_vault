@@ -20,6 +20,7 @@ The server rules need no host `vault`: the binary comes from HashiCorp's release
 ## Contents
 
 - [Installation](#installation)
+- [The vault CLI](#the-vault-cli)
 - [Hermetic server](#hermetic-server)
 - [Cluster install](#cluster-install)
 - [Talking to Vault](#talking-to-vault)
@@ -32,11 +33,11 @@ The server rules need no host `vault`: the binary comes from HashiCorp's release
 ## Installation
 
 ```python
-bazel_dep(name = "rules_vault", version = "0.3.1")
+bazel_dep(name = "rules_vault", version = "0.4.0")
 git_override(
     module_name = "rules_vault",
     remote = "https://github.com/collider-bazel-extensions/rules_vault",
-    tag = "v0.3.1",
+    tag = "v0.4.0",
 )
 
 # rules_vault depends on rules_kubectl, which is not in the BCR either.
@@ -71,6 +72,22 @@ archive_override(
 ```
 
 The `vault` extension only honours the root module's `version` tags (the `mod.is_root` guard used across this organization), so declare it in your own `MODULE.bazel`. rules_vault registers the toolchains itself. Bzlmod only.
+
+The release archive leaves out `tests/` and `tools/`, which load dev-only modules (rules_itest, rules_kind, rules_helm), so `bazel query @rules_vault//...` works with `archive_override`. A `git_override` checks out the whole repository, `tests/` and `tools/` included, and `@rules_vault//...` then fails to load; name packages instead (`@rules_vault//:all`, `@rules_vault//toolchain:all`).
+
+---
+
+## The vault CLI
+
+`@rules_vault//:vault` runs the toolchain's `vault`, the version you pin with `vault.version(...)`, with whatever arguments you give it:
+
+```sh
+bazel run @rules_vault//:vault -- version
+bazel run @rules_vault//:vault -- policy fmt ./policies/worker.hcl
+VAULT_ADDR=https://vault.example:8200 bazel run @rules_vault//:vault -- kv get secret/app
+```
+
+It runs from the directory you ran `bazel run` in, so relative paths in the arguments resolve there. `VAULT_*` variables come from your shell. It is a plain executable, so it also works as `data` for your own targets, where it finds the binary through `RUNFILES_DIR`.
 
 ---
 
@@ -329,6 +346,7 @@ To pin new binaries, run `tools/update_checksums.sh <version>`. It pins the four
 PRs welcome. Conventions match the sibling rule sets:
 
 - New rules need an analysis test in `tests/analysis_tests.bzl`.
+- `tests/` and `tools/` are `export-ignore` in `.gitattributes`: nothing outside them may load or reference them.
 - `bazel test //tests/...` runs everything that needs no container
   runtime; the kind smokes (`//tests:smoke_test`,
   `//tests:smoke_test_ha`) are `manual`.

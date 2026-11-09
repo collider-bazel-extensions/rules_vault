@@ -4,7 +4,7 @@ Hermetic server (no container runtime; `bazel test //tests/...`):
 - example_test: issue #4's acceptance example — configure.sh, KV, PKI
   issue + CSR signing, worker / renewal policies, revoke by accessor.
 - default_test, server_test, server_failure_test, health_check_test,
-  policy_check_test, checksums_test, analysis tests.
+  policy_check_test, cli_test, checksums_test, analysis tests.
 
 Cluster (manual; needs Docker or podman):
 - Analysis test verifies the macro instantiates cleanly.
@@ -210,6 +210,18 @@ sh_test(
         "//tests/testdata:policies/worker.hcl",
         "//toolchain:current",
     ],
+)
+
+# The runnable CLI (#7): pinned version, caller's directory, args forwarded.
+sh_test(
+    name = "cli_test",
+    size = "small",
+    srcs = ["cli_test.sh"],
+    args = [
+        "$(rootpath //:vault)",
+        "1.21.2",
+    ],
+    data = ["//:vault"],
 )
 
 sh_test(

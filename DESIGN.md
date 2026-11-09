@@ -13,6 +13,17 @@ HashiCorp ships one `vault` binary per platform, which is both server and CLI, a
 - **Naming:** the `vault_chart` extension in `//tools` is separate. It downloads the Helm chart, at maintainer time only.
 - **Tag shape:** the tag is `vault.version(version = ...)`, not the `versions = [...]` list the issue sketched. The toolchain targets name one version's repos, as in rules_prometheus, so a list would suggest a choice the toolchains can't make.
 
+## `//:vault`: the CLI as a run target (#7)
+
+Operators run runbooks against a real Vault with the version the build pins, so `vault_cli` turns the resolved toolchain's binary into an executable.
+
+- **Wrapper, not a symlink.** A symlink would run in the runfiles tree under `bazel run`, so `policy fmt ./p.hcl` or `-ca-cert=./ca.pem` would resolve there. The generated bash wrapper finds the binary (`$0.runfiles`, else `RUNFILES_DIR`), changes to `$BUILD_WORKING_DIRECTORY` when set, then `exec`s vault with the arguments unchanged. rules_kubernetes and rules_pg use the same wrapper shape.
+- **Toolchain, not a per-platform select.** Only one version is pinned, so the toolchain already names the right binary for the host.
+
+## Release archive
+
+`tests/` and `tools/` load dev-only modules (rules_itest, rules_kind, rules_helm). A consumer can't see those, so `@rules_vault//...` failed to load (#7). `REPO.bazel` `ignore_directories` would hide them from this repo's own `bazel test //tests/...` too, so `.gitattributes` marks them `export-ignore` instead. GitHub's tag tarballs leave them out. A dev-only `use_extension("//tools:extensions.bzl", ...)` in MODULE.bazel is skipped for non-root modules, so the missing `tools/` is fine. A `git_override` still checks them out; the README says so.
+
 ## `vault_server`: dev mode, a known token
 
 The launcher runs:
