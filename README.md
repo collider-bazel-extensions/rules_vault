@@ -362,3 +362,11 @@ PRs welcome. Conventions match the sibling rule sets:
 - PKI secrets engine smoke (issue + verify a leaf cert)
 - Compose with [`rules_certmanager`](https://github.com/collider-bazel-extensions/rules_certmanager)
   (cert-manager's Vault Issuer talking to this rules_vault install)
+
+---
+
+## Requesting a new rules package
+
+Want Bazel rules for another tool or service?
+[Request a rules package](https://github.com/collider-bazel-extensions/.github/issues/new?template=request-a-rules-package.yml).
+The [organization page](https://github.com/collider-bazel-extensions) lists every package.
