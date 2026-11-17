@@ -37,7 +37,7 @@ bazel_dep(name = "rules_vault", version = "0.4.2")
 git_override(
     module_name = "rules_vault",
     remote = "https://github.com/collider-bazel-extensions/rules_vault",
-    commit = "667d5ece3bc2fd3eb91fed0fcab47737ef656083",  # v0.4.1
+    commit = "e4f3e62ca64ce3112e4c08b1fd934921bbf2191f",  # v0.4.2
 )
 
 # rules_vault depends on rules_kubectl, which is not in the BCR either.
@@ -57,7 +57,7 @@ archive_override(
     module_name = "rules_vault",
     urls = ["https://github.com/collider-bazel-extensions/rules_vault/archive/refs/tags/v0.4.2.tar.gz"],
     strip_prefix = "rules_vault-0.4.2",
-    integrity = "sha256-Hv+jTaQRKE0oaKipcglnQKXr0ZTtIPxB64XrOlo9hN8=",
+    integrity = "sha256-nNa64mK/FeopBUnSrrXp5rI3hyTg/rPFwKkDLHjCPhk=",
 )
 ```
 
