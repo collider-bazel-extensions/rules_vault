@@ -33,7 +33,7 @@ The server rules need no host `vault`: the binary comes from HashiCorp's release
 ## Installation
 
 ```python
-bazel_dep(name = "rules_vault", version = "0.4.1")
+bazel_dep(name = "rules_vault", version = "0.4.2")
 git_override(
     module_name = "rules_vault",
     remote = "https://github.com/collider-bazel-extensions/rules_vault",
@@ -55,8 +55,8 @@ To pin by archive and integrity instead of a git commit, replace the `git_overri
 ```python
 archive_override(
     module_name = "rules_vault",
-    urls = ["https://github.com/collider-bazel-extensions/rules_vault/archive/refs/tags/v0.4.1.tar.gz"],
-    strip_prefix = "rules_vault-0.4.1",
+    urls = ["https://github.com/collider-bazel-extensions/rules_vault/archive/refs/tags/v0.4.2.tar.gz"],
+    strip_prefix = "rules_vault-0.4.2",
     integrity = "sha256-Hv+jTaQRKE0oaKipcglnQKXr0ZTtIPxB64XrOlo9hN8=",
 )
 ```
@@ -370,3 +370,9 @@ PRs welcome. Conventions match the sibling rule sets:
 Want Bazel rules for another tool or service?
 [Request a rules package](https://github.com/collider-bazel-extensions/.github/issues/new?template=request-a-rules-package.yml).
 The [organization page](https://github.com/collider-bazel-extensions) lists every package.
+
+## License
+
+[Apache License 2.0](LICENSE) (SPDX: `Apache-2.0`).
+
+Manifests in `private/manifests/` that are rendered from upstream charts or releases remain under their upstream projects' licences.
